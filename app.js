@@ -16,18 +16,16 @@ class Cart {
     addItem(id, amount) {
       let inCart = this.contents.find(item => item.id === id);
   
-      //if id present in contents
+      //if product present in cart contents
       if (inCart !== undefined) {
         //increment by amount
         inCart.amount += amount;
         console.log("Item found");
       }
-      //otherwise
+      //otherwise add new product to cart
       else {  
-        //create cartItem w/ amount
         let cartItem = {...Storage.getProduct(id)};
         cartItem.amount = amount;
-        //push cartItem to contents
         this.contents.push(cartItem);
       }
     }
@@ -43,7 +41,7 @@ class Cart {
         }
     }
 
-    itemIncrement(id) {
+    incrementItem(id) {
         for (let i = 0; i < this.contents.length; i++) {
             if (this.contents[i].id === id) {
                 this.contents[i].amount++;
@@ -53,7 +51,7 @@ class Cart {
         }
     }
 
-    itemDecrement(id) {
+    decrementItem(id) {
         for (let i = 0; i < this.contents.length; i++) {
             if (this.contents[i].id === id) {
                 if (this.contents[i].amount === 1) {
@@ -89,7 +87,7 @@ class Storage {
                 const image = item.fields.image.fields.file.url;
                 return {category, title, price, id, image};
             })
-            Storage.saveProducts(products);
+            localStorage.setItem("products", JSON.stringify(products));
             return products;
         } 
         catch (error) {
