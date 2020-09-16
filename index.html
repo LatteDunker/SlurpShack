@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://kit.fontawesome.com/05320edf53.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chicken</title>
+</head>
+<body>
+<!-- Start of navigation-->
+<nav class="navBar">
+    <a>Home</a>
+    <a href="index.html">Products</a>
+    <a>About</a>
+    <i id="openCartBtn" class="fas fa-shopping-cart"></i>
+
+
+</nav>
+<!-- End of navigation-->
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Start of cart -->
+
+    <div class="cart">
+        <i id="closeCartBtn" class="fas fa-arrow-right"></i>
+        <div id="cart-contents"></div>
+        <div class="cart-totals">
+
+            <div class="subtotal">
+                <h2 class="subtotal-value"></h2>
+            </div>
+
+            <div class="tax">
+                <h2 class="tax-value"></h2>
+            </div>
+            <div class="total">
+                <h2 class="total-value"></h2>
+                <div class="btn">Checkout</div>
+            </div>
+            
+        </div>
+    </div>
+    
+<div class="cart-overlay"></div>
+
+<!-- End of cart -->
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="main">
+    <div class="cardsContainer" id="productListings">        
+    </div>
+</div>
+ 
+
+
+</body>
+<script src="https://cdn.jsdelivr.net/npm/contentful@latest/dist/contentful.browser.min.js"></script>
+<script src="app.js"></script>
+</html>
