@@ -8,11 +8,22 @@ const client = contentful.createClient({
   });
 console.log(client);
 
+const productListings = document.getElementById('productListings');
+const showCartBtn = document.getElementById('openCartBtn');
+const closeCartBtn = document.getElementById('closeCartBtn');
+
+const cartOverlay = document.querySelector('.cart-overlay');
+const cartUI = document.querySelector('.cart');
+const cartContents = document.getElementById('cart-contents');
+
 ///////////////////////////////////////////////////////////////////////////////////////////
+// Backend Cart
 class Cart {
     contents = [];
+    subtotal = 0;
+    total = 0;
 
-    // Add item to cart
+    // Add item to cart + + + + + + + + + REMOVE STORAGE FUNCTIONALITY FROM THIS AND UI.insertCartItem
     addItem(id, amount) {
       let inCart = this.contents.find(item => item.id === id);
   
@@ -28,17 +39,6 @@ class Cart {
         cartItem.amount = amount;
         this.contents.push(cartItem);
       }
-    }
-    
-    // Remove item from cart by id
-    removeItem(id) {
-        for (let i = 0; i < this.contents.length; i++) {
-            if (this.contents[i].id === id) {
-                this.contents.splice(i, 1);
-                console.log("removed");
-                return;
-            }
-        }
     }
 
     incrementItem(id) {
@@ -66,9 +66,38 @@ class Cart {
             }
         }
     }
+    // Remove item from cart by id
+    removeItem(id) {
+        for (let i = 0; i < this.contents.length; i++) {
+            if (this.contents[i].id === id) {
+                this.contents.splice(i, 1);
+                console.log("removed");
+                return;
+            }
+        }
+    }
+    clearCart() {
+        this.contents = [];
+    }
+    getItemAmount(id) {
+        let product = this.contents.find(item => item.id === id);
+        if (product) {
+            return product.amount;
+        }
+        return undefined;    
+    }
+    findItem(id) {
+        return this.contents.find(item => item.id === id);
+    }
+
+    updateSubtotal() {}
+    updateTotal() {}
+    
+
 
 }
 
+// LocalStorage operations
 class Storage {
     //Saves loaded products to local storage for attribute references
     static saveProducts(products) {
@@ -88,6 +117,7 @@ class Storage {
                 return {category, title, price, id, image};
             })
             localStorage.setItem("products", JSON.stringify(products));
+            console.log(products)
             return products;
         } 
         catch (error) {
@@ -117,10 +147,155 @@ class Storage {
     }
 }
 
+// + + + + replace direct access to cart.contents.items with item class and accessors
+
+class UI {
+//Creates product card (Button functionality is added in this method via onclick)
+    static createCard(product) {
+        let productCard = 
+        `
+         <div class="cardsContainer-item">
+            <div class="productCard" data-id="${product.id}">
+                <div class="cardContents">
+                    <div class="cardImgContainer">
+                        <img src="${product.image}">
+                    </div>
+                    <div class="titleContainer">
+                        <h2>${product.title}</h2>
+                    </div>
+                    <div class="slideUp">
+                        <h4>${product.price}</h4>
+                        <div class="addToCartBtn" data-id="${product.id}"> Add to Cart</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        return productCard;
+    }
+// Appends product cards to "productListings" container
+    static displayProducts(products) {
+        products.forEach(item => {
+            const card = UI.createCard(item);
+            productListings.innerHTML += card;
+        })
+        //Add functionality for card buttons
+        productListings.addEventListener('click', event => {
+            let button = event.target;
+            let itemId = parseInt(event.target.dataset.id);
+
+            if (button.classList.contains('addToCartBtn')) {
+                let inCart = cart.findItem(itemId);
+                if (inCart == undefined) {
+                    cart.addItem(itemId, 1);
+                    UI.insertCartItem(itemId);
+                }
+                else {
+                    inCart.amount++;
+                    UI.updateItemQty(itemId, inCart.amount);
+                }
+                UI.showCart();
+            }
+        });
+    }
+// Displays cart
+    static showCart() {
+        cartOverlay.classList.add('show-cart-overlay');
+        cartUI.classList.add('showCart');
+        console.log('open')
+    }
+// Hides cart
+    static hideCart() {
+        cartOverlay.classList.remove('show-cart-overlay');
+        cartUI.classList.remove('showCart');
+    }
+// Updates quantity item in cart DOM
+    static updateItemQty(id, amount) {
+       let itemQty = document.getElementById(`cart-item-id-${id}`).children[2].children[1];
+       itemQty.innerText = amount;
+    }
+// Appends a new item to cart DOM
+    static insertCartItem(id) {
+        let product = cart.findItem(id);
+
+        //create a div containing item info + amount
+        let cartItem = document.createElement('div');
+        cartItem.classList.add('cart-item');
+        cartItem.setAttribute('id', `cart-item-id-${id}`);
+  
+        cartItem.innerHTML += 
+        `
+            <img src=${product.image}>
+                <div class="item-info">
+                    <h3>${product.title}</h3> 
+                    <h4>${product.price}</h4>
+                </div>
+                <div>
+                    <i class="fas fa-chevron-up"></i>
+                    <p class="cart-item-amount">${product.amount}</p>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+        `;
+
+        // EVENT LISTENERS 
+        cartItem.addEventListener('click', event => {
+            let button = event.target;
+
+            if (button.classList.contains('fa-chevron-up')) {
+                //increment backend
+                cart.incrementItem(id);
+                //increment frontend
+                button.nextElementSibling.innerText = cart.getItemAmount(id);
+                //refresh cart values
+                
+            }
+            else if (button.classList.contains('removeItem')) { 
+                cart.removeItem(id);
+                //remove frontend entire cartItem
+                UI.removeFromCart(id);
+                //refresh cart values
+            }
+            else if (button.classList.contains('fa-chevron-down')) {
+                cart.decrementItem(id);
+                let qty = cart.getItemAmount(id);
+                //if item still present in cart backend
+                if (qty !== undefined) {
+                    button.previousElementSibling.innerText = qty; 
+                }
+                //if not, delete it's cart UI card from DOM
+                else {
+                    UI.removeFromCart(id);
+                }
+            }
+        });
+        // Append div to cartContents
+        cartContents.appendChild(cartItem);
+
+    }
+// Removes item from cart DOM by id
+    static removeFromCart(id) {
+        let toBeRemoved = document.getElementById(`cart-item-id-${id}`);
+        cartContents.removeChild(toBeRemoved);
+    }
+}
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-Storage.loadProducts();
-
 let cart = new Cart;
+let products;
+showCartBtn.addEventListener('click', UI.showCart);
+closeCartBtn.addEventListener('click', UI.hideCart);
+cartOverlay.addEventListener('click', UI.hideCart);
+
+
+products = Storage.loadProducts().then(products => {
+    UI.displayProducts(products);
+});
+
+cart.addItem(3, 2);
+
+
+
+
