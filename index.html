@@ -19,37 +19,29 @@
 </nav>
 <!-- End of navigation-->
 
-
-
-
-
-
-
-
-
-
-
-
 <!-- Start of cart -->
 
     <div class="cart">
         <i id="closeCartBtn" class="fas fa-arrow-right"></i>
         <div id="cart-contents"></div>
-        <div class="cart-totals">
-
-            <div class="subtotal">
-                <h2 class="subtotal-value"></h2>
+        <div class="cart-totals-container">
+            <div class="cart-totals-child-container">
+                <h3>Subtotal</h3>
+                <h3 id="cart-subtotal"></h3>
             </div>
-
-            <div class="tax">
-                <h2 class="tax-value"></h2>
+            <div class="cart-totals-child-container">
+                <h3>Tax</h3>
+                <h3 id="cart-tax"></h3>
             </div>
-            <div class="total">
-                <h2 class="total-value"></h2>
-                <div class="btn">Checkout</div>
+            <br>
+            <hr>
+            <br>
+            <div class="cart-totals-child-container">
+                <h3>Total</h3>
+                <h3 id="cart-total"></h3>
             </div>
-            
-        </div>
+        </div>    
+        <div class="btn" id="cart-checkout-btn">Check Out</div>
     </div>
     
 <div class="cart-overlay"></div>
