@@ -6,51 +6,46 @@ const client = contentful.createClient({
     // This is the access token for this space. Normally you get both ID and the token in the Contentful web app
     accessToken: "2N1L8FuQIEqU2Y3VOwPJ6mc3oYwVOxs6wR7wWStnJk0"
   });
-console.log(client);
 
 const productListings = document.getElementById('productListings');
 const showCartBtn = document.getElementById('openCartBtn');
 const closeCartBtn = document.getElementById('closeCartBtn');
-
 const cartOverlay = document.querySelector('.cart-overlay');
 const cartUI = document.querySelector('.cart');
 const cartContents = document.getElementById('cart-contents');
 
-///////////////////////////////////////////////////////////////////////////////////////////
+const cartSubtotal = document.getElementById('cart-subtotal');
+const cartTax = document.getElementById('cart-tax');
+const cartTotal = document.getElementById('cart-total');
+
 // Backend Cart
 class Cart {
     contents = [];
+    taxRate = 0.0725;
+
     subtotal = 0;
+    tax = 0;
     total = 0;
 
-    // Add item to cart + + + + + + + + + REMOVE STORAGE FUNCTIONALITY FROM THIS AND UI.insertCartItem
-    addItem(id, amount) {
-      let inCart = this.contents.find(item => item.id === id);
-  
-      //if product present in cart contents
-      if (inCart !== undefined) {
-        //increment by amount
-        inCart.amount += amount;
-        console.log("Item found");
-      }
-      //otherwise add new product to cart
-      else {  
-        let cartItem = {...Storage.getProduct(id)};
-        cartItem.amount = amount;
-        this.contents.push(cartItem);
-      }
-    }
+// ----- METHODS ----- Change to accept product object from app mgr class (for optimization)
 
+// Add item to cart by id and specifed amount
+    addItem(product, amount) {
+        product.amount = amount;
+        this.contents.push(product);
+        this.updateSubtotal();
+    }
+// Increment an item's amount by 1
     incrementItem(id) {
         for (let i = 0; i < this.contents.length; i++) {
             if (this.contents[i].id === id) {
                 this.contents[i].amount++;
-                console.log("Increased");
+                this.updateSubtotal();
                 return;
             }
         }
     }
-
+// Decrement an item's amount by 1, when amount = 0, item is removed from cart
     decrementItem(id) {
         for (let i = 0; i < this.contents.length; i++) {
             if (this.contents[i].id === id) {
@@ -65,8 +60,9 @@ class Cart {
                 return
             }
         }
+        this.updateSubtotal();
     }
-    // Remove item from cart by id
+// Remove item from cart by id
     removeItem(id) {
         for (let i = 0; i < this.contents.length; i++) {
             if (this.contents[i].id === id) {
@@ -75,10 +71,14 @@ class Cart {
                 return;
             }
         }
+        this.updateSubtotal();
     }
+    // To be finished - - - - - - - - -
     clearCart() {
         this.contents = [];
+        this.updateSubtotal();
     }
+    // Retrieve amount of item by id
     getItemAmount(id) {
         let product = this.contents.find(item => item.id === id);
         if (product) {
@@ -86,15 +86,41 @@ class Cart {
         }
         return undefined;    
     }
+    // Return item object from cart by id
     findItem(id) {
         return this.contents.find(item => item.id === id);
     }
-
-    updateSubtotal() {}
-    updateTotal() {}
+    updateSubtotal() {
+        let subtotal = 0;
+        this.contents.forEach(item => subtotal += item.price * item.amount);
+        this.subtotal = subtotal;
+        console.log(this.subtotal);
+    }
+    updateTax() {
+        this.tax = this.subtotal * this.taxRate;
+    }
+    updateTotal() {
+        this.total = this.subtotal + this.tax;
+    }
+    get subtotal() {
+        return this.subtotal;
+    }
+    get tax() {
+        return this.tax;
+    }
+    get total() {
+        return this.total;
+    }
+    get contents() {
+        return this.contents;
+    }
+    setCart(cartContents) {
+        this.contents = cartContents;
+        this.updateSubtotal();
+        this.updateTax();
+        this.updateTotal();
+    }
     
-
-
 }
 
 // LocalStorage operations
@@ -103,8 +129,7 @@ class Storage {
     static saveProducts(products) {
         localStorage.setItem("products", JSON.stringify(products));
     }
-
-    //Downloads series of products from Contentful client and stores in local storage
+    //Downloads array of products from Contentful client and stores in local storage
     static async loadProducts() {
         try {
             let contentful = await client.getEntries({content_type: "product"});
@@ -124,12 +149,10 @@ class Storage {
             console.log(error);
         }
     }
-
     // Saves cart for next session
     static saveCart(cart) {
         localStorage.setItem("cart", JSON.stringify(cart));
     }
-
     // Retrieves cart from previous session
     static getCart() {
         if (localStorage.getItem('cart')) {
@@ -139,7 +162,6 @@ class Storage {
             return [];
         }
     }
-
     // Retrieves product info from local storage
     static getProduct(id) {
         let products = JSON.parse(localStorage.getItem('products'));
@@ -147,15 +169,15 @@ class Storage {
     }
 }
 
-// + + + + replace direct access to cart.contents.items with item class and accessors
-
 class UI {
-//Creates product card (Button functionality is added in this method via onclick)
+// Receives product object and creates card
     static createCard(product) {
-        let productCard = 
+        const productCard = document.createElement('div');
+        productCard.classList.add("cardsContainer-item");
+        productCard.setAttribute('data-id', product.id);
+        productCard.innerHTML =
         `
-         <div class="cardsContainer-item">
-            <div class="productCard" data-id="${product.id}">
+            <div class="productCard">
                 <div class="cardContents">
                     <div class="cardImgContainer">
                         <img src="${product.image}">
@@ -165,20 +187,20 @@ class UI {
                     </div>
                     <div class="slideUp">
                         <h4>${product.price}</h4>
-                        <div class="addToCartBtn" data-id="${product.id}"> Add to Cart</div>
+                        <div class="btn" data-id="${product.id}"> Add to Cart</div>
                     </div>
                 </div>
             </div>
-        </div>
         `;
         return productCard;
     }
-// Appends product cards to "productListings" container
+// Receives array of product objects and appends their cards to productListings container
     static displayProducts(products) {
         products.forEach(item => {
             const card = UI.createCard(item);
             productListings.innerHTML += card;
-        })
+        });
+
         //Add functionality for card buttons
         productListings.addEventListener('click', event => {
             let button = event.target;
@@ -191,97 +213,167 @@ class UI {
                     UI.insertCartItem(itemId);
                 }
                 else {
-                    inCart.amount++;
-                    UI.updateItemQty(itemId, inCart.amount);
+                    cart.incrementItem(itemId);
+                    UI.updateCartItemQty(itemId, inCart.amount);
                 }
-                UI.showCart();
+            UI.showCart();
             }
         });
     }
+
+    static updateCartSubtotal(){
+        cartSubtotal.innerText = `$${cart.subtotal.toFixed(2)}`;
+    }
+    static updateCartTax(){
+        cartTax.innerText = `$${cart.tax.toFixed(2)}`;
+    }
+    static updateCartTotal(){
+        cartTotal.innerText = `$${cart.total.toFixed(2)}`;
+    }
+
+//----------CART---------------
 // Displays cart
     static showCart() {
         cartOverlay.classList.add('show-cart-overlay');
         cartUI.classList.add('showCart');
-        console.log('open')
     }
 // Hides cart
     static hideCart() {
         cartOverlay.classList.remove('show-cart-overlay');
         cartUI.classList.remove('showCart');
     }
-// Updates quantity item in cart DOM
-    static updateItemQty(id, amount) {
-       let itemQty = document.getElementById(`cart-item-id-${id}`).children[2].children[1];
-       itemQty.innerText = amount;
-    }
-// Appends a new item to cart DOM
-    static insertCartItem(id) {
-        let product = cart.findItem(id);
-
-        //create a div containing item info + amount
-        let cartItem = document.createElement('div');
-        cartItem.classList.add('cart-item');
-        cartItem.setAttribute('id', `cart-item-id-${id}`);
-  
-        cartItem.innerHTML += 
-        `
-            <img src=${product.image}>
-                <div class="item-info">
-                    <h3>${product.title}</h3> 
-                    <h4>${product.price}</h4>
-                </div>
-                <div>
-                    <i class="fas fa-chevron-up"></i>
-                    <p class="cart-item-amount">${product.amount}</p>
-                    <i class="fas fa-chevron-down"></i>
+    static insertCartItemCard(product) {
+        let cartItemCard = document.createElement('div');
+        cartItemCard.classList.add('cart-item-container');
+        cartItemCard.setAttribute('id', `cart-item-id-${product.id}`);
+        cartItemCard.setAttribute('data-id', product.id);
+    
+        cartItemCard.innerHTML += 
+        ` 
+                <div class="cart-item-icons">
+                    <div class="fas fa-times cart-remove-item"></div>
+                </div>         
+                <div class="cart-item"> 
+                    <img src="${product.image}">
+                    <div class="cart-item-info">
+                        <h3>${product.title}</h3> 
+                    </div>
+                    <div class="cart-item-operations">
+                        <i class="fas fa-minus"></i>
+                        <h3 id="cart-item-id-${product.id}-amount" class="cart-item-amount">${product.amount}</h3>
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <div class="cart-item-price">
+                        <h4>$${product.price}</h4> 
+                    </div>
                 </div>
         `;
 
-        // EVENT LISTENERS 
-        cartItem.addEventListener('click', event => {
+        cartItemCard.addEventListener('click', event => {
             let button = event.target;
 
-            if (button.classList.contains('fa-chevron-up')) {
-                //increment backend
-                cart.incrementItem(id);
-                //increment frontend
-                button.nextElementSibling.innerText = cart.getItemAmount(id);
-                //refresh cart values
-                
+            if (button.classList.contains('fa-plus')) {
+                cart.incrementItem(product.id);
+                let qty = cart.getItemAmount(product.id);
+                UI.updateCartItemQty(product.id, qty);
             }
-            else if (button.classList.contains('removeItem')) { 
-                cart.removeItem(id);
-                //remove frontend entire cartItem
-                UI.removeFromCart(id);
-                //refresh cart values
+            else if (button.classList.contains('cart-remove-item')) { 
+                cart.removeItem(product.id);
+                UI.removeCartItem(product.id);
             }
-            else if (button.classList.contains('fa-chevron-down')) {
-                cart.decrementItem(id);
-                let qty = cart.getItemAmount(id);
+            else if (button.classList.contains('fa-minus')) {
+                cart.decrementItem(product.id);
+                let qty = cart.getItemAmount(product.id);
                 //if item still present in cart backend
-                if (qty !== undefined) {
-                    button.previousElementSibling.innerText = qty; 
+                if (qty) {
+                    UI.updateCartItemQty(product.id, qty);
                 }
                 //if not, delete it's cart UI card from DOM
                 else {
-                    UI.removeFromCart(id);
+                    UI.removeCartItem(product.id);
                 }
             }
-        });
-        // Append div to cartContents
-        cartContents.appendChild(cartItem);
-
-    }
+            Storage.saveCart(cart.contents);
+            AppMGR.updateCartTotals();   
+    });
+    cartContents.appendChild(cartItemCard);
+}
 // Removes item from cart DOM by id
-    static removeFromCart(id) {
-        let toBeRemoved = document.getElementById(`cart-item-id-${id}`);
-        cartContents.removeChild(toBeRemoved);
+    static removeCartItem(id) {
+    let toBeRemoved = document.getElementById(`cart-item-id-${id}`);
+    cartContents.removeChild(toBeRemoved);
+}
+    // Searches cartDOM for cartItem and changes amount
+    static updateCartItemQty(id, amount) {
+       let itemQty = document.getElementById(`cart-item-id-${id}-amount`);
+       itemQty.innerText = amount;
+       console.log('updating qty')
     }
 }
 
+class AppMGR {
 
+    static setup() {
+        cart.setCart(Storage.getCart());
+        cart.contents.forEach(item => {UI.insertCartItemCard(item);});
+        this.updateCartTotals();
+    }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+    // Add a product to the listing container
+    static createListing(id) {
+    // Load product info from storage
+        let product = {...Storage.getProduct(id)};
+
+    // Create product card
+        let productCard = UI.createCard(product);
+
+    // Add card button functionality
+        productCard.addEventListener('click', event => {
+            let button = event.target;
+            let productId = parseInt(productCard.dataset.id);
+
+            if (button.classList.contains('btn')) {
+                this.addToCart(productId, 1);
+            }
+        });
+
+        productListings.appendChild(productCard);
+    }
+
+    // Create listings for a group of products  
+    static displayProducts(category) {
+        category.forEach(item => AppMGR.createListing(item.id));
+    }
+
+    // Adds specied amount of product to the cart
+    static addToCart(id, amount) {
+        let inCart = cart.findItem(id);
+            if (inCart) {
+                    cart.incrementItem(id);
+                    UI.updateCartItemQty(id, inCart.amount);
+                }
+            else {
+                let product = {...Storage.getProduct(id)};
+                if (product != undefined) {
+                    cart.addItem(product, 1);
+                    UI.insertCartItemCard(product);
+                }
+            }
+            this.updateCartTotals();
+            Storage.saveCart(cart.contents);
+            UI.showCart();
+    }
+
+    static updateCartTotals() {
+        cart.updateSubtotal();
+        cart.updateTax();
+        cart.updateTotal();
+
+        UI.updateCartSubtotal();
+        UI.updateCartTax();
+        UI.updateCartTotal();
+    }
+}
 
 let cart = new Cart;
 let products;
@@ -291,11 +383,9 @@ cartOverlay.addEventListener('click', UI.hideCart);
 
 
 products = Storage.loadProducts().then(products => {
-    UI.displayProducts(products);
+    AppMGR.setup();
+    AppMGR.displayProducts(products);
 });
-
-cart.addItem(3, 2);
-
 
 
 
