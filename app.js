@@ -13,10 +13,16 @@ const closeCartBtn = document.getElementById('closeCartBtn');
 const cartOverlay = document.querySelector('.cart-overlay');
 const cartUI = document.querySelector('.cart');
 const cartContents = document.getElementById('cart-contents');
+const clearCart = document.getElementById('clear-cart');
 
 const cartSubtotal = document.getElementById('cart-subtotal');
 const cartTax = document.getElementById('cart-tax');
 const cartTotal = document.getElementById('cart-total');
+
+const mobileMenu = document.querySelector('.nav-mobile-icon');
+const closeNavBar = document.getElementById('close-nav-icon');
+const navBar = document.querySelector('.navBar');
+const navLinks = document.querySelector('.nav-links');
 
 // Backend Cart
 class Cart {
@@ -34,6 +40,17 @@ class Cart {
         product.amount = amount;
         this.contents.push(product);
         this.updateSubtotal();
+    }
+// Remove item from cart by id
+    removeItem(id) {
+    for (let i = 0; i < this.contents.length; i++) {
+        if (this.contents[i].id === id) {
+            this.contents.splice(i, 1);
+            console.log("removed");
+            return;
+        }
+    }
+    this.updateSubtotal();
     }
 // Increment an item's amount by 1
     incrementItem(id) {
@@ -62,18 +79,7 @@ class Cart {
         }
         this.updateSubtotal();
     }
-// Remove item from cart by id
-    removeItem(id) {
-        for (let i = 0; i < this.contents.length; i++) {
-            if (this.contents[i].id === id) {
-                this.contents.splice(i, 1);
-                console.log("removed");
-                return;
-            }
-        }
-        this.updateSubtotal();
-    }
-    // To be finished - - - - - - - - -
+// Remove all items from cart
     clearCart() {
         this.contents = [];
         this.updateSubtotal();
@@ -114,7 +120,7 @@ class Cart {
     get contents() {
         return this.contents;
     }
-    setCart(cartContents) {
+    setContents(cartContents) {
         this.contents = cartContents;
         this.updateSubtotal();
         this.updateTax();
@@ -122,53 +128,6 @@ class Cart {
     }
     
 }
-
-// LocalStorage operations
-class Storage {
-    //Saves loaded products to local storage for attribute references
-    static saveProducts(products) {
-        localStorage.setItem("products", JSON.stringify(products));
-    }
-    //Downloads array of products from Contentful client and stores in local storage
-    static async loadProducts() {
-        try {
-            let contentful = await client.getEntries({content_type: "product"});
-            let products = contentful.items;
-
-            //destructuring contentful json format
-            products = products.map(item => {
-                const {category, title, price, id} = item.fields;
-                const image = item.fields.image.fields.file.url;
-                return {category, title, price, id, image};
-            })
-            localStorage.setItem("products", JSON.stringify(products));
-            console.log(products)
-            return products;
-        } 
-        catch (error) {
-            console.log(error);
-        }
-    }
-    // Saves cart for next session
-    static saveCart(cart) {
-        localStorage.setItem("cart", JSON.stringify(cart));
-    }
-    // Retrieves cart from previous session
-    static getCart() {
-        if (localStorage.getItem('cart')) {
-            return JSON.parse(localStorage.getItem('cart'));
-        }
-        else {
-            return [];
-        }
-    }
-    // Retrieves product info from local storage
-    static getProduct(id) {
-        let products = JSON.parse(localStorage.getItem('products'));
-        return products.find(item => item.id === id);
-    }
-}
-
 class UI {
 // Receives product object and creates card
     static createCard(product) {
@@ -307,14 +266,65 @@ class UI {
     static updateCartItemQty(id, amount) {
        let itemQty = document.getElementById(`cart-item-id-${id}-amount`);
        itemQty.innerText = amount;
-       console.log('updating qty')
+    }
+
+    static openNavBar() {
+        navBar.classList.add('responsive');
+    }
+    static closeNavBar() {
+        navBar.classList.remove('responsive');
+    }
+}
+// LocalStorage operations
+class Storage {
+    //Saves loaded products to local storage for attribute references
+    static saveProducts(products) {
+        localStorage.setItem("products", JSON.stringify(products));
+    }
+    //Downloads array of products from Contentful client and stores in local storage
+    static async loadProducts() {
+        try {
+            let contentful = await client.getEntries({content_type: "product"});
+            let products = contentful.items;
+
+            //destructuring contentful json format
+            products = products.map(item => {
+                const {category, title, price, id} = item.fields;
+                const image = item.fields.image.fields.file.url;
+                return {category, title, price, id, image};
+            })
+            localStorage.setItem("products", JSON.stringify(products));
+            console.log(products)
+            return products;
+        } 
+        catch (error) {
+            console.log(error);
+        }
+    }
+    // Saves cart for next session
+    static saveCart(cart) {
+        localStorage.setItem("cart", JSON.stringify(cart));
+    }
+    // Retrieves cart from previous session
+    static getCart() {
+        if (localStorage.getItem('cart')) {
+            return JSON.parse(localStorage.getItem('cart'));
+        }
+        else {
+            return [];
+        }
+    }
+    // Retrieves product info from local storage
+    static getProduct(id) {
+        let products = JSON.parse(localStorage.getItem('products'));
+        return products.find(item => item.id === id);
     }
 }
 
 class AppMGR {
 
     static setup() {
-        cart.setCart(Storage.getCart());
+        cart.setContents(Storage.getCart());
         cart.contents.forEach(item => {UI.insertCartItemCard(item);});
         this.updateCartTotals();
     }
@@ -346,7 +356,7 @@ class AppMGR {
     }
 
     // Adds specied amount of product to the cart
-    static addToCart(id, amount) {
+    static addToCart(id, amount = 1) {
         let inCart = cart.findItem(id);
             if (inCart) {
                     cart.incrementItem(id);
@@ -373,13 +383,23 @@ class AppMGR {
         UI.updateCartTax();
         UI.updateCartTotal();
     }
+
+    static clearCart() {
+        while (cartContents.children.length > 0) {
+            cartContents.removeChild(cartContents.children[0]);
+        }
+    }
 }
 
 let cart = new Cart;
 let products;
+
 showCartBtn.addEventListener('click', UI.showCart);
 closeCartBtn.addEventListener('click', UI.hideCart);
 cartOverlay.addEventListener('click', UI.hideCart);
+mobileMenu.addEventListener('click', UI.openNavBar);
+closeNavBar.addEventListener('click', UI.closeNavBar)
+
 
 
 products = Storage.loadProducts().then(products => {
