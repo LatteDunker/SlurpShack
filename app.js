@@ -8,13 +8,14 @@ const client = contentful.createClient({
   });
 
 const productListings = document.getElementById('productListings');
-const showCartBtn = document.getElementById('openCartBtn');
+const openCartBtn = document.getElementById('openCartBtn');
 const closeCartBtn = document.getElementById('closeCartBtn');
 const cartOverlay = document.querySelector('.cart-overlay');
 const cartUI = document.querySelector('.cart');
 const cartContents = document.getElementById('cart-contents');
 const clearCart = document.getElementById('clear-cart');
 
+const cartNumberOfItems = document.getElementById('cart-number-of-items');
 const cartSubtotal = document.getElementById('cart-subtotal');
 const cartTax = document.getElementById('cart-tax');
 const cartTotal = document.getElementById('cart-total');
@@ -32,6 +33,7 @@ class Cart {
     subtotal = 0;
     tax = 0;
     total = 0;
+    numberOfItems = 0;
 
 // ----- METHODS ----- Change to accept product object from app mgr class (for optimization)
 
@@ -108,6 +110,12 @@ class Cart {
     updateTotal() {
         this.total = this.subtotal + this.tax;
     }
+    updateNumberOfItems() {
+        let itemCounter = 0;
+        this.contents.forEach(item => itemCounter += item.amount);
+        this.numberOfItems = itemCounter;
+    }
+
     get subtotal() {
         return this.subtotal;
     }
@@ -120,6 +128,10 @@ class Cart {
     get contents() {
         return this.contents;
     }
+    get numberOfItems() {
+        return this.numberOfItems;
+    }
+
     setContents(cartContents) {
         this.contents = cartContents;
         this.updateSubtotal();
@@ -188,6 +200,10 @@ class UI {
     }
     static updateCartTotal(){
         cartTotal.innerText = `$${cart.total.toFixed(2)}`;
+    }
+
+    static updateCartNumberOfItems() {
+        cartNumberOfItems.innerText = cart.numberOfItems;
     }
 
 //----------CART---------------
@@ -378,10 +394,12 @@ class AppMGR {
         cart.updateSubtotal();
         cart.updateTax();
         cart.updateTotal();
+        cart.updateNumberOfItems();
 
         UI.updateCartSubtotal();
         UI.updateCartTax();
         UI.updateCartTotal();
+        UI.updateCartNumberOfItems();
     }
 
     static clearCart() {
@@ -394,7 +412,7 @@ class AppMGR {
 let cart = new Cart;
 let products;
 
-showCartBtn.addEventListener('click', UI.showCart);
+openCartBtn.addEventListener('click', UI.showCart);
 closeCartBtn.addEventListener('click', UI.hideCart);
 cartOverlay.addEventListener('click', UI.hideCart);
 mobileMenu.addEventListener('click', UI.openNavBar);
