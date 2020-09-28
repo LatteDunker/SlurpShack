@@ -224,8 +224,6 @@ transition: var(--mainTransition);
 }
 .cart-item img {
     width: 75px;
-    height: 75px;
-    object-fit: contain;
 }
 
 .cart-item-info {
@@ -298,6 +296,7 @@ transition: var(--mainTransition);
 .cardsContainer-item {
     display: flex;
     padding: 1rem;
+    margin-bottom: 5rem;
 }
 
 @media (min-width: 0rem) {
@@ -319,12 +318,17 @@ transition: var(--mainTransition);
         width: 33%;
     }
 }
+@media (min-width: 2000px) {
+    .cardsContainer-item {
+        width: 25%;
+    }
+}
 
 
 
  .productCard {
     background: white;
-    border-radius: 0.25rem;
+    border-radius: 0.4rem;
     box-shadow: -1px 10px 19px 6px rgba(204,204,204,0.63);
     display: flex;
     flex-direction: column;
