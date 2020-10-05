@@ -1,0 +1,29 @@
+.main {
+    display: flex;
+    flex-direction: column;
+    padding-top: 4rem;
+    max-width: 1700px;
+}
+
+#ThankYou {
+    margin-bottom: 1rem;
+}
+
+.conclusion {
+    display: flex;
+    flex-direction: column;
+    max-width: 30rem;
+}
+
+#orderSummary {
+    background: white;
+    border: 1px solid grey;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+#checkout-btn {
+    width: 100%;
+}
+

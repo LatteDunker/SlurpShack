@@ -1,4 +1,5 @@
 
+
 // Contentful CMS
 const client = contentful.createClient({
     // This is the space ID. A space is like a project folder in Contentful terms
@@ -19,11 +20,18 @@ const cartNumberOfItems = document.getElementById('cart-number-of-items');
 const cartSubtotal = document.getElementById('cart-subtotal');
 const cartTax = document.getElementById('cart-tax');
 const cartTotal = document.getElementById('cart-total');
+const cartCheckoutBtn = document.getElementById('cart-checkout-btn');
+const cartEmptyMessage = document.getElementById('cart-empty-message');
 
 const mobileMenu = document.querySelector('.nav-mobile-icon');
 const closeNavBar = document.getElementById('close-nav-icon');
 const navBar = document.querySelector('.navBar');
 const navLinks = document.querySelector('.nav-links');
+
+const searchBar = document.getElementById('searchFilter');
+const categoryContainer = document.getElementById('categories');
+
+const categories = ['Health', 'Shield', 'Fish', 'Misc'];
 
 // Backend Cart
 class Cart {
@@ -138,6 +146,13 @@ class Cart {
         this.updateTax();
         this.updateTotal();
     }
+
+    isEmpty() {
+        if (this.numberOfItems > 0) {
+            return false;
+        }
+        return true;
+    }
     
 }
 class UI {
@@ -146,6 +161,8 @@ class UI {
         const productCard = document.createElement('div');
         productCard.classList.add("cardsContainer-item");
         productCard.setAttribute('data-id', product.id);
+        productCard.setAttribute('data-title', product.title);
+        productCard.setAttribute('data-category', product.category);
         productCard.innerHTML =
         `
             <div class="productCard">
@@ -284,12 +301,95 @@ class UI {
        itemQty.innerText = amount;
     }
 
+    static updateCheckout(cart) {
+        if (cart.isEmpty() == true) {
+            console.log('making visible')
+            cartEmptyMessage.classList.remove('invisible'); 
+            cartCheckoutBtn.classList.add('invisible');
+        }
+        else {
+            console.log('making invis')
+            cartEmptyMessage.classList.add('invisible');
+            cartCheckoutBtn.classList.remove('invisible');
+        }
+    }
+
     static openNavBar() {
         navBar.classList.add('responsive');
     }
     static closeNavBar() {
         navBar.classList.remove('responsive');
     }
+    static filterProducts() {
+        // Get all product cards from DOM
+            let productCards = productListings.childNodes;
+
+        // Get user search
+            let input = searchBar.value.toUpperCase();
+
+        // Get all checked categories
+            let categoryCheckboxes = categoryContainer.querySelectorAll('.category-checkbox');
+            let checkedBoxes = [...categoryCheckboxes].filter(checkbox => checkbox.checked);
+            let checkedCategories = checkedBoxes.map(checkbox => checkbox.dataset.category);
+            console.log(checkedCategories);
+        
+        // Get checkedmarked categories
+            
+        
+        // Loop through all list items, and hide those who don't match the search query
+        productCards.forEach(productCard => {
+
+            let cardTitle = productCard.dataset.title.toUpperCase();
+            let cardCategories = productCard.dataset.category.toUpperCase();
+
+        // Test 1: Card name or category matches input
+            if (cardTitle.indexOf(input) == -1 && cardCategories.indexOf(input) == -1) {
+            // Hide card
+                console.log("card does not match input");
+                productCard.classList.add('invisible');
+                return;
+            }
+        // Test 2: Card matches category checkboxes if 1 or more are checked
+            else if (checkedCategories.length == 0) {
+                console.log("no categories checked, showing all");
+                productCard.classList.remove('invisible');
+                return;
+            }
+            else {
+                for (let i = 0; i < checkedCategories.length; i++) {
+                    // If card matches any one checked category
+                    if (cardCategories.indexOf(checkedCategories[i].toUpperCase()) > -1) {
+                        productCard.classList.remove('invisible');
+                        return;
+                    }
+                }
+            }
+            productCard.classList.add('invisible');
+        });
+    }
+
+    static importCategories() {
+        categories.forEach(category => {
+            const categoryCheckboxContainer = document.createElement('div');
+            categoryCheckboxContainer.classList.add('checkbox-container');
+
+            const checkbox = document.createElement('input');
+            checkbox.classList.add('category-checkbox');
+            checkbox.setAttribute('data-category', category);
+            checkbox.setAttribute('type', 'checkbox');
+            checkbox.addEventListener('click', UI.filterProducts);
+
+            const checkboxTitle = document.createElement('h3');
+            checkboxTitle.innerText = category;
+
+            categoryCheckboxContainer.appendChild(checkbox);
+            categoryCheckboxContainer.appendChild(checkboxTitle);
+
+            categoryContainer.appendChild(categoryCheckboxContainer);
+        });
+        
+    }
+
 }
 // LocalStorage operations
 class Storage {
@@ -343,6 +443,7 @@ class AppMGR {
         cart.setContents(Storage.getCart());
         cart.contents.forEach(item => {UI.insertCartItemCard(item);});
         this.updateCartTotals();
+        UI.importCategories();
     }
 
     // Add a product to the listing container
@@ -385,8 +486,8 @@ class AppMGR {
                     UI.insertCartItemCard(product);
                 }
             }
-            this.updateCartTotals();
             Storage.saveCart(cart.contents);
+            this.updateCartTotals();
             UI.showCart();
     }
 
@@ -400,6 +501,7 @@ class AppMGR {
         UI.updateCartTax();
         UI.updateCartTotal();
         UI.updateCartNumberOfItems();
+        UI.updateCheckout(cart);
     }
 
     static clearCart() {
@@ -416,13 +518,17 @@ openCartBtn.addEventListener('click', UI.showCart);
 closeCartBtn.addEventListener('click', UI.hideCart);
 cartOverlay.addEventListener('click', UI.hideCart);
 mobileMenu.addEventListener('click', UI.openNavBar);
-closeNavBar.addEventListener('click', UI.closeNavBar)
+closeNavBar.addEventListener('click', UI.closeNavBar);
+
+searchBar.addEventListener('input', UI.filterProducts);
 
 
+document.addEventListener("DOMContentLoaded", function() {
+    products = Storage.loadProducts().then(products => {
+        AppMGR.setup();
+        AppMGR.displayProducts(products);
+    });
 
-products = Storage.loadProducts().then(products => {
-    AppMGR.setup();
-    AppMGR.displayProducts(products);
 });
 
 

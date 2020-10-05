@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout</title>
+
+    <script src="https://kit.fontawesome.com/05320edf53.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="checkout.css">
+</head>
+<body>
+    
+    <div class="main">
+        <div class="conclusion">
+            <div id="ThankYou">
+                <h1 class="heading">Almost there</h1>
+            </div>
+            <div id="orderSummary">
+                <h2>Your Items</h2>
+                <br>
+                <br>
+                <div id="cart-contents"></div>
+                <div class="cart-totals-container">
+                    <div class="cart-totals-child-container">
+                        <h3>Subtotal</h3>
+                        <h3 id="cart-subtotal"></h3>
+                    </div>
+                    <div class="cart-totals-child-container">
+                        <h3>Tax</h3>
+                        <h3 id="cart-tax"></h3>
+                    </div>
+                    <br>
+                    <hr>
+                    <br>
+                    <div class="cart-totals-child-container">
+                        <h3>Total</h3>
+                        <h3 id="cart-total"></h3>
+                    </div>
+                </div>
+        </div>
+
+        
+        <a href="about.html" id="checkout-btn" class="btn">Complete Order</a>   
+    </div>
+</body>
+<script src="checkout.js"></script>
+</html>
